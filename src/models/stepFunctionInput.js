@@ -1,7 +1,10 @@
 'use strict';
 
+const { idempotencyKeyForEvent } = require('../services/idempotencyKeyUtil');
+
 function buildStepFunctionInput(s3Event, correlationContext) {
   const fileName = fileNameFromKey(s3Event.objectKey);
+  const idempotencyKey = idempotencyKeyForEvent(s3Event);
 
   return {
     correlationId: correlationContext.correlationId,
@@ -22,7 +25,10 @@ function buildStepFunctionInput(s3Event, correlationContext) {
     sourceMessageId: s3Event.sourceMessageId,
     metadata: {
       source: 's3-event-notification',
-      trigger: 'sqs-trigger-lambda-node'
+      trigger: 'sqs-trigger-lambda-node',
+      idempotencyKey,
+      ...(s3Event.eTag ? { eTag: s3Event.eTag } : {}),
+      ...(s3Event.sequencer ? { sequencer: s3Event.sequencer } : {})
     }
   };
 }

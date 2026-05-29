@@ -26,6 +26,23 @@ Parameters:
     Description: S3 key of the Lambda deployment zip.
 
 Resources:
+  S3TriggerIdempotencyTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${LambdaFunctionName}-${Environment}-s3-trigger-idempotency
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: idempotencyKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: idempotencyKey
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
   SqsTriggerLambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -57,6 +74,13 @@ Resources:
                 Action:
                   - states:StartExecution
                 Resource: !Ref StateMachineArn
+              - Sid: ManageIdempotencyRecords
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt S3TriggerIdempotencyTable.Arn
 
   SqsTriggerLambdaLogGroup:
     Type: AWS::Logs::LogGroup
@@ -85,6 +109,9 @@ Resources:
           SERVICE_NAME: !Sub ${LambdaFunctionName}-${Environment}
           LOG_LEVEL: INFO
           SQS_QUEUE_URL: !Ref SqsQueueUrl
+          IDEMPOTENCY_TABLE_NAME: !Ref S3TriggerIdempotencyTable
+          IDEMPOTENCY_TTL_DAYS: "91"
+          IDEMPOTENCY_IN_PROGRESS_TTL_SECONDS: "900"
 
   SqsTriggerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
@@ -101,3 +128,7 @@ Outputs:
     Value: !GetAtt SqsTriggerLambdaFunction.Arn
   LambdaExecutionRoleArn:
     Value: !GetAtt SqsTriggerLambdaExecutionRole.Arn
+  S3TriggerIdempotencyTableName:
+    Value: !Ref S3TriggerIdempotencyTable
+  S3TriggerIdempotencyTableArn:
+    Value: !GetAtt S3TriggerIdempotencyTable.Arn

@@ -260,6 +260,7 @@ components:
           nullable: true
         metadata:
           type: object
+          description: Includes trigger metadata such as source, trigger, idempotencyKey, eTag, and sequencer.
           additionalProperties:
             type: string
     CorrelationContext:

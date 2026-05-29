@@ -11,7 +11,7 @@ S3 bucket
   -> AWS Step Functions
 ```
 
-The Lambda is triggered by SQS messages containing S3 event notifications. It ignores S3 test events, parses `ObjectCreated` events, builds a Step Functions input containing `fileName` and `s3PathOrArn`, and starts the configured state machine.
+The Lambda is triggered by SQS messages containing S3 event notifications. It ignores S3 test events, parses `ObjectCreated` events, builds a Step Functions input containing `fileName` and `s3PathOrArn`, claims a DynamoDB idempotency record, and starts the configured state machine.
 
 ## Runtime
 
@@ -34,6 +34,14 @@ Required environment variable:
 
 ```text
 STATE_MACHINE_ARN
+```
+
+Production idempotency variables:
+
+```text
+IDEMPOTENCY_TABLE_NAME
+IDEMPOTENCY_TTL_DAYS
+IDEMPOTENCY_IN_PROGRESS_TTL_SECONDS
 ```
 
 Example values are in [.env.example](.env.example). Do not commit `.env` files or credentials.
@@ -109,7 +117,9 @@ The CloudFormation template creates:
 - Lambda function
 - Lambda execution role
 - CloudWatch log group
+- DynamoDB idempotency table
 - SQS receive/delete/change-visibility permissions
+- DynamoDB idempotency read/write permissions
 - Step Functions `StartExecution` permission
 - SQS to Lambda event source mapping
 
@@ -121,6 +131,9 @@ The Lambda execution role needs:
 - `sqs:DeleteMessage`
 - `sqs:GetQueueAttributes`
 - `sqs:ChangeMessageVisibility`
+- `dynamodb:GetItem`
+- `dynamodb:PutItem`
+- `dynamodb:UpdateItem`
 - `states:StartExecution`
 - CloudWatch Logs permissions from `AWSLambdaBasicExecutionRole`
 
@@ -135,6 +148,42 @@ Recommended SQS redrive setup:
 - Configure a DLQ.
 - Set `maxReceiveCount` based on operational tolerance.
 - Monitor queue age and DLQ depth.
+
+## Idempotency
+
+The CloudFormation template creates a DynamoDB table named:
+
+```text
+{LambdaFunctionName}-{Environment}-s3-trigger-idempotency
+```
+
+Table shape:
+
+```text
+Partition key: idempotencyKey (String)
+TTL attribute: expiresAt
+Billing mode: PAY_PER_REQUEST
+```
+
+The Lambda writes one idempotency record per S3 object-created event. The key is derived from:
+
+- bucket
+- object key
+- event type
+- S3 sequencer, ETag, size, and event time when present
+
+Record states:
+
+- `STARTING`: event is claimed and Step Functions startup is in progress.
+- `STARTED`: Step Functions was successfully started.
+- `FAILED`: startup failed before completion; retry can reclaim the event.
+
+Duplicate behavior:
+
+- Existing `STARTED` records are skipped and logged as duplicate completed events.
+- Existing `STARTING` records throw a retryable error so SQS can retry after visibility timeout.
+- Stale `STARTING` records can be reclaimed after `IDEMPOTENCY_IN_PROGRESS_TTL_SECONDS`.
+- Failed startup records can be reclaimed on retry.
 
 ## CloudWatch Verification
 
@@ -217,5 +266,6 @@ Avoid `strict-ssl=false` except as a temporary local diagnostic step.
 - No secrets or account-specific credentials are stored in the repo.
 - AWS account IDs in examples are placeholders.
 - AWS SDK v3 is used through `@aws-sdk/client-sfn`.
+- DynamoDB idempotency uses `@aws-sdk/client-dynamodb`.
 - The code is split into handlers, services, validators, models, logging, errors, and config for testability.
-- Jest unit and integration tests cover event parsing, validation, logging, input generation, multiple records, and Step Functions client behavior.
+- Jest unit and integration tests cover event parsing, validation, logging, input generation, multiple records, idempotency, and Step Functions client behavior.

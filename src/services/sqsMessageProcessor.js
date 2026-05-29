@@ -4,12 +4,15 @@ const { Logger } = require('../logging/logger');
 const { buildStepFunctionInput } = require('../models/stepFunctionInput');
 const { validateSqsEvent, validateSqsRecord } = require('../validators/messageValidator');
 const { createCorrelationContext } = require('./correlationService');
+const { createIdempotencyStore } = require('./idempotencyStore');
 const { isS3TestEvent, parseObjectCreatedEvents, parseSqsBody } = require('./s3EventParser');
 const { StepFunctionService } = require('./stepFunctionService');
+const { PearlError } = require('../errors/pearlError');
 
 class SqsMessageProcessor {
   constructor(options = {}) {
     this.stepFunctionService = options.stepFunctionService || new StepFunctionService(options);
+    this.idempotencyStore = options.idempotencyStore || createIdempotencyStore(options);
     this.logger = options.logger || new Logger(options.config);
   }
 
@@ -58,11 +61,38 @@ class SqsMessageProcessor {
       };
 
       this.logger.info('Starting Step Function execution.', logContext);
-      const execution = await this.stepFunctionService.startExecution(stepFunctionInput);
+      const claim = await this.idempotencyStore.claim(s3Event, stepFunctionInput);
+      if (claim.duplicateCompleted) {
+        this.logger.warn('Skipping duplicate S3 event already started.', logContext, {
+          idempotencyKey: claim.idempotencyKey,
+          existingStatus: claim.existingStatus
+        });
+        executions.push({
+          input: stepFunctionInput,
+          duplicate: true,
+          idempotencyKey: claim.idempotencyKey
+        });
+        continue;
+      }
+
+      if (claim.inProgress) {
+        throw new PearlError('S3 event is already being processed.', {
+          code: 'S3_EVENT_IN_PROGRESS',
+          retryable: true,
+          details: {
+            idempotencyKey: claim.idempotencyKey,
+            existingStatus: claim.existingStatus
+          }
+        });
+      }
+
+      const execution = await this.startStepFunction(stepFunctionInput, s3Event, logContext, claim);
+      await this.idempotencyStore.markStarted(claim, execution);
       this.logger.info('Started Step Function execution.', logContext, {
         executionArn: execution.executionArn,
         executionName: execution.executionName,
-        duplicateNameRetried: execution.duplicateNameRetried
+        duplicateNameRetried: execution.duplicateNameRetried,
+        idempotencyKey: claim.idempotencyKey
       });
 
       executions.push({
@@ -75,6 +105,22 @@ class SqsMessageProcessor {
       ignored: false,
       executions
     };
+  }
+
+  async startStepFunction(stepFunctionInput, s3Event, logContext, claim) {
+    try {
+      return await this.stepFunctionService.startExecution(stepFunctionInput);
+    } catch (error) {
+      try {
+        await this.idempotencyStore.release(claim, error);
+      } catch (releaseError) {
+        this.logger.error('Failed to release S3 idempotency claim.', logContext, releaseError, {
+          idempotencyKey: claim.idempotencyKey,
+          sourceMessageId: s3Event.sourceMessageId
+        });
+      }
+      throw error;
+    }
   }
 }
 
