@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: PEARL standalone Node.js SQS Trigger Lambda.
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedPattern: "^[a-zA-Z0-9-]+$"
+    Description: Deployment environment name.
+  LambdaFunctionName:
+    Type: String
+    Default: pearl-sqs-trigger-lambda-node
+  SqsQueueArn:
+    Type: String
+    Description: ARN of the SQS queue that receives S3 notifications.
+  SqsQueueUrl:
+    Type: String
+    Description: URL of the SQS queue that receives S3 notifications.
+  StateMachineArn:
+    Type: String
+    Description: Step Functions state machine ARN to start.
+  DeploymentBucket:
+    Type: String
+    Description: S3 bucket containing the Lambda deployment zip.
+  DeploymentKey:
+    Type: String
+    Description: S3 key of the Lambda deployment zip.
+
+Resources:
+  SqsTriggerLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${LambdaFunctionName}-${Environment}-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: pearl-sqs-trigger-lambda-access
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadSqsTriggerQueue
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:ChangeMessageVisibility
+                Resource: !Ref SqsQueueArn
+              - Sid: StartPearlStateMachine
+                Effect: Allow
+                Action:
+                  - states:StartExecution
+                Resource: !Ref StateMachineArn
+
+  SqsTriggerLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LambdaFunctionName}-${Environment}
+      RetentionInDays: 30
+
+  SqsTriggerLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - SqsTriggerLambdaLogGroup
+    Properties:
+      FunctionName: !Sub ${LambdaFunctionName}-${Environment}
+      Runtime: nodejs22.x
+      Handler: src/handlers/sqsTriggerHandler.handler
+      Role: !GetAtt SqsTriggerLambdaExecutionRole.Arn
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Ref DeploymentKey
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          AWS_REGION: !Ref AWS::Region
+          STATE_MACHINE_ARN: !Ref StateMachineArn
+          SERVICE_NAME: !Sub ${LambdaFunctionName}-${Environment}
+          LOG_LEVEL: INFO
+          SQS_QUEUE_URL: !Ref SqsQueueUrl
+
+  SqsTriggerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !Ref SqsQueueArn
+      FunctionName: !Ref SqsTriggerLambdaFunction
+      BatchSize: 1
+      Enabled: true
+
+Outputs:
+  LambdaFunctionName:
+    Value: !Ref SqsTriggerLambdaFunction
+  LambdaFunctionArn:
+    Value: !GetAtt SqsTriggerLambdaFunction.Arn
+  LambdaExecutionRoleArn:
+    Value: !GetAtt SqsTriggerLambdaExecutionRole.Arn

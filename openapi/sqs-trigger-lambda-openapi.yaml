@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: PEARL SQS Trigger Lambda Contract
+  version: 1.0.0
+  description: >
+    Documentation-only OpenAPI contract for the PEARL SQS Trigger Lambda.
+    The runtime trigger is AWS SQS, not HTTP. These paths describe payload
+    shapes for contract visibility, testing, and operational review.
+servers:
+  - url: https://documentation-only.local
+    description: Documentation only. This Lambda is invoked by SQS.
+tags:
+  - name: DocumentationOnly
+    description: Contract visibility for SQS and Step Functions payloads.
+paths:
+  /health:
+    get:
+      tags:
+        - DocumentationOnly
+      summary: Documentation-only health shape
+      description: This is not exposed by the Lambda runtime. It documents the expected health response shape.
+      responses:
+        "200":
+          description: Health response example.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - service
+                properties:
+                  status:
+                    type: string
+                    example: UP
+                  service:
+                    type: string
+                    example: pearl-sqs-trigger-lambda-node
+  /events/s3-object-created:
+    post:
+      tags:
+        - DocumentationOnly
+      summary: S3 ObjectCreated event body carried inside an SQS record
+      description: Documentation only. AWS S3 publishes this event to SQS; clients do not call this Lambda over HTTP.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/S3ObjectCreatedEvent"
+      responses:
+        "202":
+          description: Event accepted shape for documentation only.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                    example: true
+        "400":
+          description: Invalid event shape.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /events/step-function-input:
+    post:
+      tags:
+        - DocumentationOnly
+      summary: Step Functions input emitted by the Lambda
+      description: Documentation only. This documents the payload sent to AWS Step Functions StartExecution.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepFunctionInput"
+      responses:
+        "202":
+          description: Step Function input accepted shape for documentation only.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                    example: true
+        "400":
+          description: Invalid Step Function input shape.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    SqsEvent:
+      type: object
+      required:
+        - Records
+      properties:
+        Records:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - messageId
+              - body
+            properties:
+              messageId:
+                type: string
+                example: 4f8cfd0e-84f4-4f9d-bf0b-8b1e8ac24e31
+              receiptHandle:
+                type: string
+              body:
+                type: string
+                description: JSON string containing an S3 event notification.
+              messageAttributes:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    stringValue:
+                      type: string
+                    dataType:
+                      type: string
+                      example: String
+    S3ObjectCreatedEvent:
+      type: object
+      required:
+        - Records
+      properties:
+        Records:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - eventName
+              - s3
+            properties:
+              eventVersion:
+                type: string
+                example: "2.1"
+              eventSource:
+                type: string
+                example: aws:s3
+              awsRegion:
+                type: string
+                example: us-east-1
+              eventTime:
+                type: string
+                format: date-time
+              eventName:
+                type: string
+                example: ObjectCreated:Put
+              s3:
+                type: object
+                required:
+                  - bucket
+                  - object
+                properties:
+                  bucket:
+                    type: object
+                    required:
+                      - name
+                    properties:
+                      name:
+                        type: string
+                        example: pearl-outbound-dev
+                      arn:
+                        type: string
+                        example: arn:aws:s3:::pearl-outbound-dev
+                  object:
+                    type: object
+                    required:
+                      - key
+                    properties:
+                      key:
+                        type: string
+                        example: outbound/prismhr/financial/batch-20260529/batch-20260529_prismhr_PEARL-401K-PLAN-001.json
+                      size:
+                        type: integer
+                        format: int64
+                        example: 4096
+                      eTag:
+                        type: string
+                        example: etag-test
+                      sequencer:
+                        type: string
+                        example: 00664F1D2A5A
+    StepFunctionInput:
+      type: object
+      required:
+        - correlationId
+        - batchId
+        - vendorId
+        - dataType
+        - payloadType
+        - fileName
+        - s3PathOrArn
+        - bucket
+        - key
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        batchId:
+          type: string
+          example: batch-20260529
+        vendorId:
+          type: string
+          example: prismhr
+        dataType:
+          type: string
+          enum:
+            - financial
+            - indicative
+            - unknown
+        payloadType:
+          type: string
+          enum:
+            - financial
+            - indicative
+            - unknown
+        fileName:
+          type: string
+          example: batch-20260529_prismhr_PEARL-401K-PLAN-001
+        s3PathOrArn:
+          type: string
+          example: s3://pearl-outbound-dev/outbound/prismhr/financial/batch-20260529/batch-20260529_prismhr_PEARL-401K-PLAN-001.json
+        bucket:
+          type: string
+          example: pearl-outbound-dev
+        key:
+          type: string
+        eventType:
+          type: string
+          example: ObjectCreated:Put
+        eventTime:
+          type: string
+          nullable: true
+        awsRegion:
+          type: string
+          nullable: true
+        objectSize:
+          type: integer
+          nullable: true
+        eTag:
+          type: string
+          nullable: true
+        sequencer:
+          type: string
+          nullable: true
+        sourceMessageId:
+          type: string
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    CorrelationContext:
+      type: object
+      required:
+        - correlationId
+        - batchId
+        - vendorId
+        - dataType
+      properties:
+        correlationId:
+          type: string
+          format: uuid
+        correlationIdShort:
+          type: string
+          example: a1b2c3d4e5f6
+        batchId:
+          type: string
+        vendorId:
+          type: string
+        dataType:
+          type: string
+        bucket:
+          type: string
+        key:
+          type: string
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          example: INVALID_SQS_EVENT
+        message:
+          type: string
+        correlationId:
+          type: string
+          nullable: true
+        retryable:
+          type: boolean

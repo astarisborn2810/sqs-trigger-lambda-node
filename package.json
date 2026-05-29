@@ -1,0 +1,27 @@
+{
+  "name": "pearl-sqs-trigger-lambda-node",
+  "version": "1.0.0",
+  "description": "Standalone Node.js AWS Lambda that consumes S3 object-created notifications from SQS and starts PEARL Step Functions workflows.",
+  "main": "src/handlers/sqsTriggerHandler.js",
+  "private": false,
+  "engines": {
+    "node": ">=25"
+  },
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:unit": "jest test/unit --runInBand",
+    "test:integration": "jest test/integration --runInBand",
+    "lint": "eslint src test --ext .js",
+    "format": "prettier --write .",
+    "package": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./scripts/package-lambda.ps1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-sfn": "^3.940.0"
+  },
+  "devDependencies": {
+    "eslint-config-prettier": "^9.1.2",
+    "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2"
+  }
+}

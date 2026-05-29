@@ -1,0 +1,23 @@
+{
+  "Records": [
+    {
+      "eventVersion": "2.1",
+      "eventSource": "aws:s3",
+      "awsRegion": "us-east-1",
+      "eventTime": "2026-05-29T10:00:00.000Z",
+      "eventName": "ObjectCreated:Put",
+      "s3": {
+        "bucket": {
+          "name": "pearl-outbound-dev",
+          "arn": "arn:aws:s3:::pearl-outbound-dev"
+        },
+        "object": {
+          "key": "outbound/prismhr/financial/batch-20260529/batch-20260529_prismhr_PEARL-401K-PLAN-001.json",
+          "size": 4096,
+          "eTag": "etag-test",
+          "sequencer": "00664F1D2A5A"
+        }
+      }
+    }
+  ]
+}
