@@ -38,6 +38,7 @@ try {
     }
 
     Compress-Archive -Path (Join-Path $StageDir "*") -DestinationPath $ResolvedOutputPath -Force
+    Remove-Item -LiteralPath $StageDir -Recurse -Force
     Write-Host "Created Lambda package: $ResolvedOutputPath"
 }
 finally {

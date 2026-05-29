@@ -24,8 +24,8 @@ try {
 
     $gh = Get-Command gh -ErrorAction SilentlyContinue
     if ($gh) {
-        $remoteExists = git remote get-url origin 2>$null
-        if (-not $remoteExists) {
+        $remotes = git remote
+        if ($remotes -notcontains "origin") {
             gh repo create $RepoName --$Visibility --source . --remote origin
         }
         git push -u origin main
