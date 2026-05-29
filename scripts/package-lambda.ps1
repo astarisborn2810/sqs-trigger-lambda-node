@@ -1,5 +1,5 @@
 param(
-    [string]$OutputPath = "dist/pearl-sqs-trigger-lambda-node.zip"
+    [string]$OutputPath = "dist/sqs-trigger-lambda-node.zip"
 )
 
 $ErrorActionPreference = "Stop"

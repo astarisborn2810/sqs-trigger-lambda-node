@@ -1,5 +1,5 @@
 param(
-    [string]$RepoName = "pearl-sqs-trigger-lambda-node",
+    [string]$RepoName = "sqs-trigger-lambda-node",
     [ValidateSet("private", "public")]
     [string]$Visibility = "private"
 )

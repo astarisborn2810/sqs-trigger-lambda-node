@@ -35,7 +35,7 @@ paths:
                     example: UP
                   service:
                     type: string
-                    example: pearl-sqs-trigger-lambda-node
+                    example: sqs-trigger-lambda-node
   /events/s3-object-created:
     post:
       tags:

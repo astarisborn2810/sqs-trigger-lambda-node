@@ -8,7 +8,7 @@ Parameters:
     Description: Deployment environment name.
   LambdaFunctionName:
     Type: String
-    Default: pearl-sqs-trigger-lambda-node
+    Default: sqs-trigger-lambda-node
   SqsQueueArn:
     Type: String
     Description: ARN of the SQS queue that receives S3 notifications.
@@ -57,7 +57,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: pearl-sqs-trigger-lambda-access
+        - PolicyName: sqs-trigger-lambda-node-access
           PolicyDocument:
             Version: "2012-10-17"
             Statement:

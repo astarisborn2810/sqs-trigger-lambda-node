@@ -1,5 +1,5 @@
 {
-  "name": "pearl-sqs-trigger-lambda-node",
+  "name": "sqs-trigger-lambda-node",
   "version": "1.0.0",
   "description": "Standalone Node.js AWS Lambda that consumes S3 object-created notifications from SQS and starts PEARL Step Functions workflows.",
   "main": "src/handlers/sqsTriggerHandler.js",

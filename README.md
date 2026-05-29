@@ -1,4 +1,4 @@
-# PEARL SQS Trigger Lambda Node.js
+# sqs-trigger-lambda-node
 
 Standalone Node.js AWS Lambda project for PEARL downstream orchestration. This repository is intentionally independent from the Java monorepo.
 
@@ -23,7 +23,7 @@ The Lambda is triggered by SQS messages containing S3 event notifications. It ig
 ## Local Setup
 
 ```powershell
-cd D:\office-work\Empwr\Code\pearl-sqs-trigger-lambda-node
+cd D:\office-work\Empwr\Code\sqs-trigger-lambda-node
 npm ci
 Copy-Item .env.example .env
 npm test
@@ -91,7 +91,7 @@ The script runs:
 - `npm test`
 - `npm run lint`
 - production dependency install into a staging folder
-- ZIP creation at `dist/pearl-sqs-trigger-lambda-node.zip`
+- ZIP creation at `dist/sqs-trigger-lambda-node.zip`
 
 ## Deployment
 
@@ -99,7 +99,7 @@ The script runs:
 .\scripts\deploy-lambda.ps1 `
   -Region us-east-1 `
   -Environment dev `
-  -FunctionName pearl-sqs-trigger-lambda-node `
+  -FunctionName sqs-trigger-lambda-node `
   -DeploymentBucket your-deployment-bucket `
   -StateMachineArn arn:aws:states:us-east-1:123456789012:stateMachine:pearl-downstream-orchestrator-dev `
   -SqsQueueArn arn:aws:sqs:us-east-1:123456789012:pearl-outbound-trigger-queue-dev `
@@ -190,7 +190,7 @@ Duplicate behavior:
 After deployment:
 
 ```powershell
-aws logs tail /aws/lambda/pearl-sqs-trigger-lambda-node-dev --follow --region us-east-1
+aws logs tail /aws/lambda/sqs-trigger-lambda-node-dev --follow --region us-east-1
 ```
 
 Look for structured JSON logs containing:
@@ -239,7 +239,7 @@ git init
 git branch -M main
 git add .
 git commit -m "Initial PEARL SQS trigger Lambda Node.js implementation"
-git remote add origin https://github.com/<your-user>/pearl-sqs-trigger-lambda-node.git
+git remote add origin https://github.com/<your-user>/sqs-trigger-lambda-node.git
 git push -u origin main
 ```
 

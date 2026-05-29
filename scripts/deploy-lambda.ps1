@@ -27,8 +27,8 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $ProjectRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
-$PackagePath = Join-Path $ProjectRoot "dist/pearl-sqs-trigger-lambda-node.zip"
-$DeploymentKey = "lambda/$Environment/pearl-sqs-trigger-lambda-node.zip"
+$PackagePath = Join-Path $ProjectRoot "dist/sqs-trigger-lambda-node.zip"
+$DeploymentKey = "lambda/$Environment/sqs-trigger-lambda-node.zip"
 $TemplatePath = Join-Path $ProjectRoot "infrastructure/cloudformation/lambda.yaml"
 $StackName = "$FunctionName-$Environment"
 

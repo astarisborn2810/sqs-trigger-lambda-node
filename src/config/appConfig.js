@@ -5,7 +5,7 @@ function getAppConfig(env = process.env) {
     awsRegion: env.AWS_REGION || 'us-east-1',
     stateMachineArn: env.STATE_MACHINE_ARN,
     logLevel: (env.LOG_LEVEL || 'INFO').toUpperCase(),
-    serviceName: env.SERVICE_NAME || 'pearl-sqs-trigger-lambda-node',
+    serviceName: env.SERVICE_NAME || 'sqs-trigger-lambda-node',
     idempotencyTableName: env.IDEMPOTENCY_TABLE_NAME,
     idempotencyTtlDays: positiveInteger(env.IDEMPOTENCY_TTL_DAYS, 91),
     idempotencyInProgressTtlSeconds: positiveInteger(
