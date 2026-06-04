@@ -20,3 +20,27 @@
     }
   ]
 }
+
+
+
+
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowS3SendMessage",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "s3.amazonaws.com"
+      },
+      "Action": "sqs:SendMessage",
+      "Resource": "arn:aws:sqs:us-east-1:556079294135:pearl-outbound-trigger-queue-dev",
+      "Condition": {
+        "ArnLike": {
+          "aws:SourceArn": "arn:aws:s3:::dev-individualandclient-pearl-canonical-us-east-1"
+        }
+      }
+    }
+  ]
+}
+
