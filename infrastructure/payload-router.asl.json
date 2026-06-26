@@ -1,0 +1,61 @@
+{
+  "Comment": "Routes PEARL S3 payloads to the correct ECS-backed API based on the Lambda-provided payloadType.",
+  "StartAt": "Select Payload API",
+  "States": {
+    "Select Payload API": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.payloadType",
+          "StringEquals": "indicative",
+          "Next": "Call Indicative API"
+        },
+        {
+          "Variable": "$.payloadType",
+          "StringEquals": "financial",
+          "Next": "Call Financial API"
+        }
+      ],
+      "Default": "Unsupported Payload Type"
+    },
+    "Call Indicative API": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::http:invoke",
+      "Parameters": {
+        "ApiEndpoint": "https://indicative-api.internal.example.com/payloads",
+        "Method": "POST",
+        "InvocationConfig": {
+          "ConnectionArn": "arn:aws:events:region:account-id:connection/pearl-private-ecs-api/connection-id"
+        },
+        "Headers": {
+          "content-type": "application/json"
+        },
+        "RequestBody.$": "$"
+      },
+      "ResultPath": "$.indicativeApiResult",
+      "End": true
+    },
+    "Call Financial API": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::http:invoke",
+      "Parameters": {
+        "ApiEndpoint": "https://financial-api.internal.example.com/payloads",
+        "Method": "POST",
+        "InvocationConfig": {
+          "ConnectionArn": "arn:aws:events:region:account-id:connection/pearl-private-ecs-api/connection-id"
+        },
+        "Headers": {
+          "content-type": "application/json"
+        },
+        "RequestBody.$": "$"
+      },
+      "ResultPath": "$.financialApiResult",
+      "End": true
+    },
+    "Unsupported Payload Type": {
+      "Type": "Fail",
+      "Error": "UnsupportedPayloadType",
+      "Cause": "payloadType must be either indicative or financial."
+    }
+  }
+}
