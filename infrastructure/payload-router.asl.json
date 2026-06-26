@@ -18,6 +18,7 @@
       ],
       "Default": "Unsupported Payload Type"
     },
+
     "Call Indicative API": {
       "Type": "Task",
       "Resource": "arn:aws:states:::http:invoke",
@@ -30,11 +31,23 @@
         "Headers": {
           "content-type": "application/json"
         },
-        "RequestBody.$": "$"
+        "RequestBody": {
+          "requestType": "indicative",
+          "correlationId.$": "$.correlationId",
+          "batchId.$": "$.batchId",
+          "vendorId.$": "$.vendorId",
+          "dataType.$": "$.dataType",
+          "payloadType.$": "$.payloadType",
+          "fileName.$": "$.fileName",
+          "s3PathOrArn.$": "$.s3PathOrArn",
+          "bucket.$": "$.bucket",
+          "key.$": "$.key"
+        }
       },
       "ResultPath": "$.indicativeApiResult",
       "End": true
     },
+
     "Call Financial API": {
       "Type": "Task",
       "Resource": "arn:aws:states:::http:invoke",
@@ -47,11 +60,23 @@
         "Headers": {
           "content-type": "application/json"
         },
-        "RequestBody.$": "$"
+        "RequestBody": {
+          "requestType": "financial",
+          "correlationId.$": "$.correlationId",
+          "batchId.$": "$.batchId",
+          "vendorId.$": "$.vendorId",
+          "dataType.$": "$.dataType",
+          "payloadType.$": "$.payloadType",
+          "fileName.$": "$.fileName",
+          "s3PathOrArn.$": "$.s3PathOrArn",
+          "bucket.$": "$.bucket",
+          "key.$": "$.key"
+        }
       },
       "ResultPath": "$.financialApiResult",
       "End": true
     },
+
     "Unsupported Payload Type": {
       "Type": "Fail",
       "Error": "UnsupportedPayloadType",
